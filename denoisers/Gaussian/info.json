@@ -1,0 +1,6 @@
+{
+    "short_name": "Gaussian",
+    "full_name": "Gaussian filter",
+    "comment": "A simple gaussian reconstruction filter.",
+    "citation": ""
+}

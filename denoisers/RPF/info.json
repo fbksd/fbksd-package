@@ -1,0 +1,6 @@
+{
+    "short_name": "RPF",
+    "full_name": "On filtering the noise from the random parameters in Monte Carlo rendering",
+    "comment": "Implementation based on the original code provided by the authors.",
+    "citation": "Sen, P. and Darabi, S. 2012. On filtering the noise from the random parameters in Monte Carlo rendering. ACM Transactions on Graphics 31, 3, 1–15."
+}

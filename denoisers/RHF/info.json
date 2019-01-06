@@ -1,0 +1,6 @@
+{
+    "short_name": "RHF",
+    "full_name": "Boosting monte carlo rendering by ray histogram fusion",
+    "comment": "Implementation based on the original code provided by the authors.",
+    "citation": "Delbracio, M., Musé, P., Buades, A., Chauvier, J., Phelps, N., and Morel, J.-M. 2014. Boosting monte carlo rendering by ray histogram fusion. ACM Transactions on Graphics 33, 1, 1–15."
+}

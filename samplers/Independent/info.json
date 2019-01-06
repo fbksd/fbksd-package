@@ -1,0 +1,6 @@
+{
+    "short_name": "Independent",
+    "full_name": "Independent sampler",
+    "comment": "Implemented using Mersenne Twister algorithm from the C++ standard library",
+    "citation": ""
+}

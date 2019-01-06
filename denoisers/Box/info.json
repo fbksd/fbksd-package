@@ -1,0 +1,13 @@
+{
+    "short_name": "Box",
+    "full_name": "Box filter",
+    "comment": "A simple box reconstruction filter.",
+    "citation": "",
+    "versions": [
+        {
+            "name": "default",
+            "comment": "Default version using random sampler.",
+            "executable": "Box"
+        }
+    ]
+}

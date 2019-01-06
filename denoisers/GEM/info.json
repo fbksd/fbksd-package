@@ -1,0 +1,13 @@
+{
+    "short_name": "GEM",
+    "full_name": "Adaptive Sampling and Reconstruction using Greedy Error Minimization",
+    "comment": "Based on the original source code provided by the authors.",
+    "citation": "Rousselle, F., Knaus, C., and Zwicker, M. 2011. Adaptive sampling and reconstruction using greedy error minimization. ACM Transactions on Graphics 30, 6, 1.",
+    "versions": [
+        {
+            "name": "default",
+            "comment": "Default version",
+            "executable": "GEM"
+        }
+    ]
+}

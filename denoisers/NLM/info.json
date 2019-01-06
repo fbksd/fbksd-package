@@ -1,0 +1,6 @@
+{
+    "short_name": "NLM",
+    "full_name": "Adaptive rendering with non-local means filtering",
+    "comment": "Implementation based on the original code provided by the authors.",
+    "citation": "Rousselle, F., Knaus, C., and Zwicker, M. 2012. Adaptive rendering with non-local means filtering. ACM Transactions on Graphics 31, 6, 1."
+}

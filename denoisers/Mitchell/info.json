@@ -1,0 +1,6 @@
+{
+    "short_name": "Mitchell",
+    "full_name": "Mitchell-Netravali filter",
+    "comment": "Based on the PBRT-V2 implementation.",
+    "citation": "Don P. Mitchell and Arun N. Netravali. 1988. Reconstruction filters in computer-graphics. SIGGRAPH Comput. Graph. 22, 4 (June 1988), 221-228. "
+}

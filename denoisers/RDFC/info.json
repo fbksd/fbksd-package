@@ -1,0 +1,6 @@
+{
+    "short_name": "RDFC",
+    "full_name": "Robust denoising using feature and color information",
+    "comment": "Implementation based on the original code provided by the authors.",
+    "citation": "Rousselle, F., Manzi, M., and Zwicker, M. 2013. Robust denoising using feature and color information. Computer Graphics Forum 32, 7, 121–130."
+}

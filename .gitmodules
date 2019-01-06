@@ -1,0 +1,12 @@
+[submodule "renderers/pbrt-v2"]
+	path = renderers/pbrt-v2
+	url = ../pbrt-v2.git
+[submodule "renderers/pbrt-v3"]
+	path = renderers/pbrt-v3
+	url = ../pbrt-v3.git
+[submodule "renderers/mitsuba"]
+	path = renderers/mitsuba
+	url = ../mitsuba.git
+[submodule "renderers/proceduralrender"]
+	path = renderers/proceduralrender
+	url = ../proceduralrender.git

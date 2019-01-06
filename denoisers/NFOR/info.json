@@ -1,0 +1,6 @@
+{
+    "short_name": "NFOR",
+    "full_name": "Nonlinearly Weighted First-order Regression for Denoising Monte Carlo Renderings",
+    "comment": "Implementation based on the pseudo-code provided by the authors.",
+    "citation": "Bitterli, B., Rousselle, F., Moon, B., et al. 2016. Nonlinearly Weighted First-order Regression for Denoising Monte Carlo Renderings. Computer Graphics Forum 35, 4, 107–117."
+}

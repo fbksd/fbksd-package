@@ -1,0 +1,6 @@
+{
+    "short_name": "Sobol",
+    "full_name": "Sobol Quasi-Monte Carlo sampler",
+    "comment": "Implementation adapted from Mitsuba renderer.",
+    "citation": "Wenzel Jakob. 2010. Mitsuba renderer. (http://www.mitsuba-renderer.org)"
+}
