@@ -39,9 +39,9 @@ private:
     std::uniform_real_distribution<float> m_dist;
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo scene = client.getSceneInfo();
     const int w = scene.get<int64_t>("width");
     const int h = scene.get<int64_t>("height");
@@ -58,46 +58,48 @@ int main()
           ("COLOR_R")("COLOR_G")("COLOR_B");
     client.setSampleLayout(layout);
     int sampleSize = layout.getSampleSize();
-    float* samples = client.getSamplesBuffer();
 
     Sampler sampler;
-    for(size_t y = 0; y < h; ++y)
-    for(size_t x = 0; x < w; ++x)
-    {
-        float *pixel = &samples[y * w * spp * sampleSize + x * spp * sampleSize];
-        for (int s = 0; s < spp; ++s)
-        {
-            pixel[s * sampleSize + IMAGE_X] = sampler.nextFloat() + x;
-            pixel[s * sampleSize + IMAGE_Y] = sampler.nextFloat() + y;
-            pixel[s * sampleSize + LENS_U] = sampler.nextFloat();
-            pixel[s * sampleSize + LENS_V] = sampler.nextFloat();
-            pixel[s * sampleSize + TIME] = sampler.nextFloat();
-            pixel[s * sampleSize + LIGHT_X] = sampler.nextFloat();
-            pixel[s * sampleSize + LIGHT_Y] = sampler.nextFloat();
-        }
-    }
-
-    client.evaluateSamples(SPP(spp));
-
     float* result = client.getResultBuffer();
     const float sppInv = 1.f / (float)spp;
-    for(size_t y = 0; y < h; ++y)
-    for(size_t x = 0; x < w; ++x)
-    {
-        float* pixel = &result[y*w*3 + x*3];
-        float* pixelSamples = &samples[y*w*spp*sampleSize + x*sampleSize*spp];
-        for(int s = 0; s < spp; ++s)
-        {
-            float* sample = &pixelSamples[s*sampleSize];
-            pixel[0] += sample[COLOR_R];
-            pixel[1] += sample[COLOR_G];
-            pixel[2] += sample[COLOR_B];
-        }
 
-        pixel[0] *= sppInv;
-        pixel[1] *= sppInv;
-        pixel[2] *= sppInv;
-    }
+    client.evaluateInputSamples(SPP(spp),
+        [&](const BufferTile& tile)
+        {
+            for(int64_t y = tile.beginY(); y < tile.endY(); ++y)
+            for(int64_t x = tile.beginX(); x < tile.endX(); ++x)
+            for(int s = 0; s < spp; ++s)
+            {
+                float* sample = tile(x, y, s);
+                sample[IMAGE_X] = sampler.nextFloat() + x;
+                sample[IMAGE_Y] = sampler.nextFloat() + y;
+                sample[LENS_U] = sampler.nextFloat();
+                sample[LENS_V] = sampler.nextFloat();
+                sample[TIME] = sampler.nextFloat();
+                sample[LIGHT_X] = sampler.nextFloat();
+                sample[LIGHT_Y] = sampler.nextFloat();
+            }
+        },
+        [&](const BufferTile& tile)
+        {
+            for(int64_t y = tile.beginY(); y < tile.endY(); ++y)
+            for(int64_t x = tile.beginX(); x < tile.endX(); ++x)
+            {
+                float* pixel = &result[y*w*3 + x*3];
+                for(int s = 0; s < spp; ++s)
+                {
+                    float* sample = tile(x, y, s);
+                    pixel[0] += sample[COLOR_R];
+                    pixel[1] += sample[COLOR_G];
+                    pixel[2] += sample[COLOR_B];
+                }
+
+                pixel[0] *= sppInv;
+                pixel[1] *= sppInv;
+                pixel[2] *= sppInv;
+            }
+        }
+    );
 
     client.sendResult();
     return 0;

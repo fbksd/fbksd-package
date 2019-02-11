@@ -70,7 +70,7 @@ Sampler *RandomSampler::GetSubSampler(int num, int count) {
 
 
 
-int RandomSampler::GetMoreSamples(float *sample, RNG &rng) {
+int RandomSampler::GetMoreSamples(std::vector<float> *sample, RNG &rng) {
     if (samplePos == nSamples) {
         if (xPixelStart == xPixelEnd || yPixelStart == yPixelEnd)
             return 0;
@@ -92,8 +92,8 @@ int RandomSampler::GetMoreSamples(float *sample, RNG &rng) {
         samplePos = 0;
     }
     // Return next \mono{RandomSampler} sample point
-    sample[IMAGE_X] = imageSamples[2*samplePos];
-    sample[IMAGE_Y] = imageSamples[2*samplePos+1];
+    sample->push_back(imageSamples[2*samplePos]);
+    sample->push_back(imageSamples[2*samplePos+1]);
 //    sample->imageX = imageSamples[2*samplePos];
 //    sample->imageY = imageSamples[2*samplePos+1];
 //    sample->lensU = lensSamples[2*samplePos];

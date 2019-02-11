@@ -24,7 +24,7 @@ set(SRC src/bandwidth.cpp
         src/rng.cpp
         src/sampler.cpp
         src/smooth.cpp
-        src/stratified.cpp
+        # src/stratified.cpp
         src/memory.cpp
         src/parallel.cpp
         src/bandwidth.h
@@ -39,7 +39,7 @@ set(SRC src/bandwidth.cpp
         src/rng.h
         src/sampler.h
         src/smooth.h
-        src/stratified.h
+        # src/stratified.h
         src/memory.h
         src/parallel.h
         src/error.h
@@ -53,5 +53,5 @@ target_link_libraries(GEM GEM_core)
 install(TARGETS GEM RUNTIME DESTINATION .)
 install(FILES info.json DESTINATION .)
 
-add_executable(GEM-sampler src/main_sampler.cpp)
-target_link_libraries(GEM-sampler GEM_core)
+# add_executable(GEM-sampler src/main_sampler.cpp)
+# target_link_libraries(GEM-sampler GEM_core)

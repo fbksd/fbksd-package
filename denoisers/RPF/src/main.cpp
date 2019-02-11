@@ -7,9 +7,9 @@ using namespace fbksd;
 #include <limits>
 
 
-int main()
+int main(int argc, char* argv[])
 {
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo scene = client.getSceneInfo();
     auto w = scene.get<int64_t>("width");
     auto h = scene.get<int64_t>("height");
@@ -51,11 +51,19 @@ int main()
             ("LIGHT_Y");
     client.setSampleLayout(layout);
 
-    float* samples = client.getSamplesBuffer();
-    client.evaluateSamples(SPP(spp));
+    std::vector<float> data(w*h*spp*SAMPLE_LENGTH);
+    client.evaluateSamples(SPP(spp), [&](const BufferTile& tile) {
+        for(size_t y = tile.beginY(); y < tile.endY(); ++y)
+        for(size_t x = tile.beginX(); x < tile.endX(); ++x)
+        for(size_t s = 0; s < spp; ++s)
+        {
+            float* sample = tile(x, y, s);
+            memcpy(&data[((y*w + x)*spp + s)*SAMPLE_LENGTH], sample, SAMPLE_LENGTH*sizeof(float));
+        }
+    });
 
     float* result = client.getResultBuffer();
-    RPF(result, samples, w, h, spp, SAMPLE_LENGTH, NUM_OF_POSITIONS, NUM_OF_COLORS, NUM_OF_FEATURES, NUM_OF_RANDOM_PARAMS, NULL);
+    RPF(result, data.data(), w, h, spp, SAMPLE_LENGTH, NUM_OF_POSITIONS, NUM_OF_COLORS, NUM_OF_FEATURES, NUM_OF_RANDOM_PARAMS, NULL);
     client.sendResult();
 
     return 0;

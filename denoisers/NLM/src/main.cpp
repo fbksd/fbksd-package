@@ -6,9 +6,9 @@ using namespace fbksd;
 #include "dualsampler.h"
 
 
-int main(int argc, char **argv)
+int main(int argc, char* argv[])
 {
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo sceneInfo = client.getSceneInfo();
     auto width = sceneInfo.get<int64_t>("width");
     auto height = sceneInfo.get<int64_t>("height");
@@ -35,18 +35,19 @@ int main(int argc, char **argv)
 
     GaussianFilter filter(2.f, 2.f, 2.f);
     DualFilm film(width, height, &filter, wnd_rad, k, ptc_rad);
-    float* samples = client.getSamplesBuffer();
-    size_t numPixels = width*height;
 
-    client.evaluateSamples(SPP(initSpp));
     // give half the samples for each buffer
-    for(size_t p = 0; p < numPixels; ++p)
-    {
-        for(size_t s = 0; s < initSpp/2; ++s)
-            film.AddSample(&samples[p*initSpp*sampleSize + s*sampleSize], BUFFER_A);
-        for(size_t s = initSpp/2; s < initSpp; ++s)
-            film.AddSample(&samples[p*initSpp*sampleSize + s*sampleSize], BUFFER_B);
-    }
+    client.evaluateSamples(SPP(initSpp), [&](const BufferTile& tile) {
+        for(size_t y = tile.beginY(); y < tile.endY(); ++y)
+        for(size_t x = tile.beginX(); x < tile.endX(); ++x)
+        {
+            // give half the samples for each buffer
+            for(size_t s = 0; s < initSpp/2; ++s)
+                film.AddSample(tile(x, y, s), BUFFER_A);
+            for(size_t s = initSpp/2; s < initSpp; ++s)
+                film.AddSample(tile(x, y, s), BUFFER_B);
+        }
+    });
 
     DualSampler sampler(0, width, 0, height, spp, shutterOpen, shutterClose, threshold, nIterations, initSpp, &film);
     if(sampler.PixelsToSampleTotal() > 0)
@@ -64,36 +65,37 @@ int main(int argc, char **argv)
             sampler.GetSamplingMaps(nPixelsPerIteration);
 
             // use two subsamplers, one for BUFFER_A and another for BUFFER_B
-//            for(int j = 0; j < 2; ++j)
-//            {
-//                std::unique_ptr<Sampler> subSampler(sampler.GetSubSampler(j, 2));
+            std::unique_ptr<Sampler> subSampler[2] = {
+                std::unique_ptr<Sampler>(sampler.GetSubSampler(0, 2)),
+                std::unique_ptr<Sampler>(sampler.GetSubSampler(1, 2)),
+            };
 
-//                int nSamples = 0;
-//                while(nSamples = subSampler->GetMoreSamples(samples, rng))
-//                {
-//                    client.evaluateSamples(BenchmarkClient::SAMPLES, nSamples);
-//                    for(int i = 0; i < nSamples; ++i)
-//                        film.AddSample(&samples[i*sampleSize], TargetBuffer(j));
-//                };
-//            }
-
-            size_t nSamples[2] = {0, 0};
-            size_t nSum = 0;
+            std::vector<float> samples;
             for(int j = 0; j < 2; ++j)
             {
-                std::unique_ptr<Sampler> subSampler(sampler.GetSubSampler(j, 2));
+                size_t nSamples = 0;
                 int n = 0;
-                while(n = subSampler->GetMoreSamples(&samples[nSum*sampleSize], rng))
-                {
-                    nSamples[j] += n;
-                    nSum += n;
-                }
+                while((n = subSampler[j]->GetMoreSamples(&samples, rng)))
+                    nSamples += n;
+
+                float* currentInSample = samples.data();
+                client.evaluateInputSamples(nSamples,
+                    [&](int64_t count, float* samples) {
+                        for(int64_t i = 0; i < count; ++i)
+                        {
+                            samples[i*sampleSize + 0] = currentInSample[0];
+                            samples[i*sampleSize + 1] = currentInSample[1];
+                            currentInSample += 2;
+                        }
+                    },
+                    [&](int64_t count, float* samples) {
+                        for(int64_t i = 0; i < count; ++i)
+                            film.AddSample(&samples[i*sampleSize], TargetBuffer(j));
+                    }
+                );
+
+                samples.clear();
             }
-            client.evaluateSamples(nSum);
-            for(size_t i = 0; i < nSamples[0]; ++i)
-                film.AddSample(&samples[i*sampleSize], TargetBuffer(0));
-            for(size_t i = 0; i < nSamples[1]; ++i)
-                film.AddSample(&samples[(nSamples[0] + i)*sampleSize], TargetBuffer(1));
         }
         sampler.Finalize();
     }

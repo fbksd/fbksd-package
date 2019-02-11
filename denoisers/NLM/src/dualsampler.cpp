@@ -181,8 +181,8 @@ Sampler *DualSampler::GetSubSampler(int num, int count) {
     }
 }
 
-
-int DualSampler::GetMoreSamplesMap(float *samples, RNG &rng) {
+/*
+int DualSampler::GetMoreSamplesMap(std::vector<float> *samples, RNG &rng) {
     // Nothing to do for degenerate patch
     if (_xStartSub == _xEndSub || _yStartSub == _yEndSub)
         return 0;
@@ -289,9 +289,10 @@ int DualSampler::GetMoreSamplesMap(float *samples, RNG &rng) {
     
     return 0;
 }
+*/
 
 
-int DualSampler::GetMoreSamplesMapLD(float *samples, RNG &rng) {
+int DualSampler::GetMoreSamplesMapLD(std::vector<float> *samples, RNG &rng) {
     // Nothing to do for degenerate patch
     if (_xStartSub == _xEndSub || _yStartSub == _yEndSub)
         return 0;
@@ -395,7 +396,7 @@ int DualSampler::GetMoreSamplesMapLD(float *samples, RNG &rng) {
 
 
 void DualSampler::MyLDPixelSample(int xPos, int yPos, float shutterOpen,
-    float shutterClose, int nPixelSamples, float *samples, RNG &rng,
+    float shutterClose, int nPixelSamples, std::vector<float> *samples, RNG &rng,
     NlmeansScramblingInfo *scramblingArray) {
     // Prepare temporary array pointers for low-discrepancy camera samples
     float *buf = _samplesBuf;
@@ -448,8 +449,8 @@ void DualSampler::MyLDPixelSample(int xPos, int yPos, float shutterOpen,
 
     // Initialize _samples_ with computed sample values
     for (int i = 0; i < nPixelSamples; ++i) {
-        samples[i*5] = xPos + imageSamples[2*i];
-        samples[i*5 + 1] = yPos + imageSamples[2*i+1];
+        samples->push_back(xPos + imageSamples[2*i]);
+        samples->push_back(yPos + imageSamples[2*i+1]);
 //        samples[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose);
 //        samples[i].lensU = lensSamples[2*i];
 //        samples[i].lensV = lensSamples[2*i+1];

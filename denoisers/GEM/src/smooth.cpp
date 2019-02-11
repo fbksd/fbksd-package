@@ -65,7 +65,7 @@ SmoothFilm::SmoothFilm(int xres, int yres, Filter *filt, float gamma)
 }
 
 
-void SmoothFilm::AddSample(float* sample) {
+void SmoothFilm::AddSample(const float* sample) {
     // Compute sample's raster extent
     float dimageX = sample[0] - 0.5f;
     float dimageY = sample[1] - 0.5f;

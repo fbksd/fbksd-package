@@ -47,7 +47,7 @@ public:
         FreeAligned(imageSamples);
     }
     int MaximumSampleCount() { return 1; }
-    int GetMoreSamples(float *sample, RNG &rng);
+    int GetMoreSamples(std::vector<float> *sample, RNG &rng);
     int RoundSize(int sz) const { return sz; }
     Sampler *GetSubSampler(int num, int count);
 private:

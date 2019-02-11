@@ -60,7 +60,7 @@ inline void LDShuffleScrambled2D(int offset, int nSamples, int nPixel,
 }
 
 void LDPixelSample(int offset, int xPos, int yPos, float shutterOpen,
-        float shutterClose, int nPixelSamples, float* samples,
+        float shutterClose, int nPixelSamples, std::vector<float>* samples,
         float *buf, RNG &rng) {
     // Prepare temporary array pointers for low-discrepancy camera samples
     float *imageSamples = buf; buf += 2 * nPixelSamples;
@@ -94,8 +94,8 @@ void LDPixelSample(int offset, int xPos, int yPos, float shutterOpen,
 
     // Initialize _samples_ with computed sample values
     for (int i = 0; i < nPixelSamples; ++i) {
-        samples[i*SAMPLE_SIZE + IMAGE_X] = xPos + imageSamples[2*i];
-        samples[i*SAMPLE_SIZE + IMAGE_Y] = yPos + imageSamples[2*i+1];
+        samples->push_back(xPos + imageSamples[2 * i]);
+        samples->push_back(yPos + imageSamples[2*i+1]);
 //        samples[i].imageX = xPos + imageSamples[2*i];
 //        samples[i].imageY = yPos + imageSamples[2*i+1];
 //        samples[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose);
@@ -148,14 +148,14 @@ Sampler *SBFSampler::GetSubSampler(int num, int count) {
         baseXStart, baseYStart);
 }
 
-int SBFSampler::GetMoreSamples(float *samples, RNG &rng) {
+int SBFSampler::GetMoreSamples(std::vector<float> *samples, RNG &rng) {
     if (yPos == yPixelEnd) return 0;
     
     int spp = pixelSampleCount ?
         min(((*pixelSampleCount)[yPos-baseYStart][xPos-baseXStart]), maxSamples) : 
         initSamples;
     if(!sampleBuf) {
-        sampleBuf = new float[LDPixelSampleFloatsNeeded(samples, maxSamples)];
+        sampleBuf = new float[LDPixelSampleFloatsNeeded(nullptr, maxSamples)];
     }
 
     LDPixelSample(pixelOffset ? (*pixelOffset)[yPos-baseYStart][xPos-baseXStart] : 0, xPos, yPos, 

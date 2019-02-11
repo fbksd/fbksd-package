@@ -104,7 +104,7 @@ Sampler *LWR_Sampler::GetSubSampler(int num, int count) {
     return new LWR_Sampler(this, x0, x1, y0, y1);
 }
 
-int LWR_Sampler::GetMoreSamplesWithIdx(float *samples, RNG &rng, int& pixIdx)
+int LWR_Sampler::GetMoreSamplesWithIdx(std::vector<float> *samples, RNG &rng, int& pixIdx)
 {
 	const PixSPP* pPixel = NULL; 
 	int idxPixel = -1;
@@ -124,7 +124,7 @@ int LWR_Sampler::GetMoreSamplesWithIdx(float *samples, RNG &rng, int& pixIdx)
 	
 #if MY_SAMPLER == LD_SAMPLER
 	if (!m_sampleBuf)
-		m_sampleBuf = new float[LDPixelSampleFloatsNeeded(samples, m_maxSPP)];	
+		m_sampleBuf = new float[LDPixelSampleFloatsNeeded(nullptr, m_maxSPP)];	
     LDPixelSample(xPos, yPos, shutterOpen, shutterClose, spp, samples, m_sampleBuf, rng, pixInfo);
 #elif MY_SAMPLER == RANDOM_SAMPLER
 	RandomPixelSample(xPos, yPos, shutterOpen, shutterClose, spp, samples, m_sampleBuf, rng, pixInfo);	

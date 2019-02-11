@@ -31,7 +31,7 @@ void fixSamples(float maxDepth, size_t numSamples, float* samples)
     float* sample = samples;
     for(size_t i = 0; i < numSamples; ++i)
     {
-        if(std::isinf(sample[DEPTH]))
+        if(std::isinf(sample[DEPTH]) || std::abs(maxDepth) < 1.e-10f)
             sample[DEPTH] = 1.f;
         else
             sample[DEPTH] /= maxDepth;
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     //===========================================================
     // Initialization
     //===========================================================
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
 
     // Scene info
     SceneInfo scene = client.getSceneInfo();
@@ -104,24 +104,49 @@ int main(int argc, char *argv[])
 
     GaussianFilter filter(xwidth, ywidth, alpha);
     SBFImageFilm film(width, height, &filter, false, filterType, interParams, finalParams, sigman, sigmar, sigmad, intermsesigma, finalmsesigma);
-    float *samples = client.getSamplesBuffer();
-    float maxDepth = 0.f;
+    float maxDepth = 0.f; // doesn't include inf
 
     size_t totalSamplesUsed = 0;
     //===========================================================
     // Initial sampling
     //===========================================================
     {
-        totalSamplesUsed = client.evaluateSamples(SPP(initSPP));
-        size_t numSamples = numPixels * initSPP;
-        maxDepth = computeMaxDepth(numSamples, samples);
-        fixSamples(maxDepth, numSamples, samples);
-        float* sample = samples;
-        for(size_t i = 0; i < numSamples; ++i)
+        if(initSPP > 0)
         {
-            film.AddSample(sample);
-            sample += SAMPLE_SIZE;
+            // use 1 spp to estimate maxDepth
+            std::vector<float> samples(SAMPLE_SIZE * numPixels);
+            client.evaluateSamples(SPP(1), [&](const BufferTile& tile) {
+                for(size_t y = tile.beginY(); y < tile.endY(); ++y)
+                for(size_t x = tile.beginX(); x < tile.endX(); ++x)
+                {
+                    float* sample = tile(x, y, 0);
+                    if((!std::isinf(sample[DEPTH])) && sample[DEPTH] > maxDepth)
+                        maxDepth = sample[DEPTH];
+                    memcpy(&samples[(y*width + x)*SAMPLE_SIZE], sample, SAMPLE_SIZE*sizeof(float));
+                }
+            });
+
+            fixSamples(maxDepth, numPixels, samples.data());
+            for(size_t i = 0; i < numPixels; ++i)
+                film.AddSample(&samples[i*SAMPLE_SIZE]);
         }
+
+        if(initSPP > 1)
+        {
+            int n = initSPP - 1; // compute initSPP - 1 here because we already added the 1 spp used to estimate maxDepth.
+            client.evaluateSamples(SPP(n), [&](const BufferTile& tile) {
+                for(size_t y = tile.beginY(); y < tile.endY(); ++y)
+                for(size_t x = tile.beginX(); x < tile.endX(); ++x)
+                for(size_t s = 0; s < n; ++s)
+                {
+                    float* sample = tile(x, y, s);
+                    fixSamples(maxDepth, 1, sample);
+                    film.AddSample(sample);
+                }
+            });
+        }
+
+        totalSamplesUsed = numPixels * initSPP;
     }
 
     //===========================================================
@@ -129,10 +154,14 @@ int main(int argc, char *argv[])
     //===========================================================
     if(adaptiveIterations > 0 && adaptiveSPP > 0)
     {
+        layout.setElementIO("IMAGE_X", SampleLayout::INPUT);
+        layout.setElementIO("IMAGE_Y", SampleLayout::INPUT);
+        client.setSampleLayout(layout);
+
         RNG rng;
         SBFSampler sampler(0, width, 0, height, adaptiveSPP, shutterOpen, shutterClose, initSPP, maxNSamples, adaptiveIterations);
         size_t numAdaptiveSamples = numPixels * adaptiveSPP;
-        float adaptiveSamples[maxNSamples * SAMPLE_SIZE];
+        std::vector<float> inSamples;
         for(int iter = 0; iter < adaptiveIterations; ++iter)
         {
             vector<vector<int> > pixOff;
@@ -143,7 +172,7 @@ int main(int argc, char *argv[])
 
             int sampleCount = 0;
             size_t countSum = 0;
-            while((sampleCount = sampler.GetMoreSamples(&samples[countSum*SAMPLE_SIZE], rng)) > 0)
+            while((sampleCount = sampler.GetMoreSamples(&inSamples, rng)) > 0)
                 countSum += sampleCount;
 
             if(countSum > numAdaptiveSamples)
@@ -152,13 +181,30 @@ int main(int argc, char *argv[])
                 countSum = numAdaptiveSamples;
             }
             std::cout << "iteration " << iter+1 << " of " << adaptiveIterations << " (" << countSum << " samples)" << std::endl;
-            layout.setElementIO("IMAGE_X", SampleLayout::INPUT);
-            layout.setElementIO("IMAGE_Y", SampleLayout::INPUT);
-            client.setSampleLayout(layout);
-            totalSamplesUsed += client.evaluateSamples(countSum);
-            fixSamples(maxDepth, countSum, samples);
-            for(size_t s = 0; s < countSum; ++s)
-                film.AddSample(&samples[s*SAMPLE_SIZE]);
+            totalSamplesUsed += countSum;
+
+            float* currentInSample = inSamples.data();
+            client.evaluateInputSamples(countSum,
+                [&](size_t count, float* samples){
+                    for(size_t i = 0; i < count; ++i)
+                    {
+                        float* sample = &samples[i*SAMPLE_SIZE];
+                        sample[IMAGE_X] = currentInSample[0];
+                        sample[IMAGE_Y] = currentInSample[1];
+                        currentInSample += 2;
+                    }
+                },
+                [&](size_t count, float* samples){
+                    for(size_t i = 0; i < count; ++i)
+                    {
+                        float* sample = &samples[i*SAMPLE_SIZE];
+                        fixSamples(maxDepth, 1, sample);
+                        film.AddSample(sample);
+                    }
+                }
+            );
+
+            inSamples.clear();
         }
     }
 

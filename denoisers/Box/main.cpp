@@ -13,28 +13,28 @@ int main(int argc, char* argv[])
     layout("COLOR_R")("COLOR_G")("COLOR_B");
     client.setSampleLayout(layout);
 
-    float* samples = client.getSamplesBuffer();
-    client.evaluateSamples(SPP(spp));
-    
     float* result = client.getResultBuffer();
-    const float sppInv = 1.f / (float)spp;
-    for(int64_t y = 0; y < h; ++y)
-    for(int64_t x = 0; x < w; ++x)
-    {
-        float* pixel = &result[y*w*3 + x*3];
-        float* pixelSamples = &samples[y*w*spp*3 + x*3*spp];
-        for(int s = 0; s < spp; ++s)
-        {
-            float* sample = &pixelSamples[s*3];
-            pixel[0] += sample[0];
-            pixel[1] += sample[1];
-            pixel[2] += sample[2];
-        }
+    const float sppInv = 1.f / spp;
 
-        pixel[0] *= sppInv;
-        pixel[1] *= sppInv;
-        pixel[2] *= sppInv;
-    }
+    client.evaluateSamples(SPP(spp), [&](const BufferTile& tile)
+    {
+        for(size_t y = tile.beginY(); y < tile.endY(); ++y)
+        for(size_t x = tile.beginX(); x < tile.endX(); ++x)
+        {
+            float* pixel = &result[y*w*3 + x*3];
+            for(int s = 0; s < spp; ++s)
+            {
+                float* sample = tile(x, y, s);
+                pixel[0] += sample[0];
+                pixel[1] += sample[1];
+                pixel[2] += sample[2];
+            }
+
+            pixel[0] *= sppInv;
+            pixel[1] *= sppInv;
+            pixel[2] *= sppInv;
+        }
+    });
 
     client.sendResult();
     return 0;

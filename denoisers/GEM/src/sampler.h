@@ -41,7 +41,7 @@ public:
     virtual ~Sampler();
     Sampler(int xstart, int xend, int ystart, int yend,
             int spp, float sopen, float sclose);
-    virtual int GetMoreSamples(float* samples, RNG& rng) = 0;
+    virtual int GetMoreSamples(std::vector<float>* samples, RNG& rng) = 0;
     virtual int MaximumSampleCount() = 0;
     virtual bool ReportResults(Sample *samples, const RayDifferential *rays,
         const Spectrum *Ls, const Intersection *isects, int count);

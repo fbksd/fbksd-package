@@ -190,7 +190,7 @@ Sampler *MultiSampler::GetSubSampler(int num, int count) {
 }
 
 
-int MultiSampler::GetMoreSamplesMap(float *samples, RNG &rng) {
+int MultiSampler::GetMoreSamplesMap(std::vector<float> *samples, RNG &rng) {
     // Nothing to do for degenerate patch
     if (_xStartSub == _xEndSub || _yStartSub == _yEndSub)
         return 0;
@@ -232,8 +232,10 @@ int MultiSampler::GetMoreSamplesMap(float *samples, RNG &rng) {
             for (int i = 0; i < nSamples; i++) {
                 // Importance sampling
                 float xTmp = rng.RandomFloat(), yTmp = rng.RandomFloat();
-                samples[i*SAMPLE_SIZE + IMAGE_X] = _xPos + xTmp;
-                samples[i*SAMPLE_SIZE + IMAGE_Y] = _yPos + yTmp;
+                float sx = _xPos + xTmp;
+                float sy = _yPos + yTmp;
+                samples->push_back(sx);
+                samples->push_back(sy);
 //                samples[i].imageX = _xPos + xTmp;
 //                samples[i].imageY = _yPos + yTmp;
 //                samples[i].lensU = rng.RandomFloat();
@@ -249,8 +251,8 @@ int MultiSampler::GetMoreSamplesMap(float *samples, RNG &rng) {
 //                        samples[i].twoD[j][k] = rng.RandomFloat();
 
                 // Replace image samples with low-discrepancy samples inside film buffer
-                int xPosSmp = Floor2Int(samples[i*SAMPLE_SIZE + IMAGE_X]);
-                int yPosSmp = Floor2Int(samples[i*SAMPLE_SIZE + IMAGE_Y]);
+                int xPosSmp = Floor2Int(sx);
+                int yPosSmp = Floor2Int(sy);
 //                int xPosSmp = Floor2Int(samples[i].imageX);
 //                int yPosSmp = Floor2Int(samples[i].imageY);
                 if (xPosSmp >= 0 && yPosSmp >= 0 && xPosSmp < xPixelCount && yPosSmp < yPixelCount) {
@@ -258,8 +260,9 @@ int MultiSampler::GetMoreSamplesMap(float *samples, RNG &rng) {
                     if (true) {//_scrambling[pix]._nGenerated < 32) {
                         // Draw the samples
                         MyLDShuffleScrambled2D(1, 1, scrambling[0][pix]._nGenerated, buffer, rng, scrambling[0][pix]._image);
-                        samples[i*SAMPLE_SIZE + IMAGE_X] = xPosSmp + buffer[0];
-                        samples[i*SAMPLE_SIZE + IMAGE_Y] = yPosSmp + buffer[1];
+                        float* sample = &samples->data()[i*2];
+                        sample[0] = xPosSmp + buffer[0];
+                        sample[1] = yPosSmp + buffer[1];
 //                        samples[i].imageX = xPosSmp + buffer[0];
 //                        samples[i].imageY = yPosSmp + buffer[1];
                         scrambling[0][pix]._nGenerated++;
@@ -277,7 +280,7 @@ int MultiSampler::GetMoreSamplesMap(float *samples, RNG &rng) {
     return 0;
 }
 
-int MultiSampler::GetMoreSamplesMapLD(float *samples, RNG &rng) {
+int MultiSampler::GetMoreSamplesMapLD(std::vector<float> *samples, RNG &rng) {
     // Nothing to do for degenerate patch
     if (_xStartSub == _xEndSub || _yStartSub == _yEndSub)
         return 0;
@@ -296,7 +299,7 @@ int MultiSampler::GetMoreSamplesMapLD(float *samples, RNG &rng) {
         
         // Allocate the "samples buffer" needed for low-discrepancy sampling
         if (samplesBuf == NULL)
-            samplesBuf = new float[LDPixelSampleFloatsNeeded(samples, sppInit)];
+            samplesBuf = new float[LDPixelSampleFloatsNeeded(nullptr, sppInit)];
         
         // Draw the samples
         MyLDPixelSample(_xPos, _yPos, shutterOpen, shutterClose, sppInit, samples, rng, scrambling[0]);
@@ -307,7 +310,7 @@ int MultiSampler::GetMoreSamplesMapLD(float *samples, RNG &rng) {
     
     // Allocate the "samples buffer" needed for low-discrepancy sampling
     if (samplesBuf == NULL)
-        samplesBuf = new float[LDPixelSampleFloatsNeeded(samples, samplesPerPixel)];
+        samplesBuf = new float[LDPixelSampleFloatsNeeded(nullptr, samplesPerPixel)];
     
     // Go over the tile until we get some samples
     for ( ; _yPos < _yEndSub; _yPos++) {
@@ -383,7 +386,7 @@ int MultiSampler::GetMoreSamplesMapLD(float *samples, RNG &rng) {
 
 
 void MultiSampler::MyLDPixelSample(int xPos, int yPos, float shutterOpen,
-    float shutterClose, int nPixelSamples, float *samples, RNG &rng,
+    float shutterClose, int nPixelSamples, std::vector<float> *samples, RNG &rng,
     MultiScramblingInfo *scramblingArray) {
     // Prepare temporary array pointers for low-discrepancy camera samples
     float *buf = samplesBuf;
@@ -436,8 +439,8 @@ void MultiSampler::MyLDPixelSample(int xPos, int yPos, float shutterOpen,
 
     // Initialize _samples_ with computed sample values
     for (int i = 0; i < nPixelSamples; ++i) {
-        samples[i*SAMPLE_SIZE + IMAGE_X] = xPos + imageSamples[2*i];
-        samples[i*SAMPLE_SIZE + IMAGE_Y] = yPos + imageSamples[2*i+1];
+        samples->push_back(xPos + imageSamples[2*i]);
+        samples->push_back(yPos + imageSamples[2*i+1]);
 //        samples[i].imageX = xPos + imageSamples[2*i];
 //        samples[i].imageY = yPos + imageSamples[2*i+1];
 //        samples[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose);

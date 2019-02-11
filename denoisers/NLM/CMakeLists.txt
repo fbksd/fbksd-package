@@ -42,14 +42,10 @@ set(SRC src/main.cpp
         src/montecarlo.h
         src/parallel.cpp
         src/parallel.h
-        src/random.cpp
-        src/random.h
         src/rng.cpp
         src/rng.h
         src/sampler.cpp
         src/sampler.h
-        src/stratified.cpp
-        src/stratified.h
         src/nlmdenoiser.cpp
         src/nlmdenoiser.h
         src/dualfilm.cpp

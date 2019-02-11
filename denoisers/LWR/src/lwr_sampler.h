@@ -60,7 +60,7 @@ public:
 		return maxSPP; 	
 	}
 
-    int GetMoreSamplesWithIdx(float *sample, RNG &rng, int& pixIdx);
+    int GetMoreSamplesWithIdx(std::vector<float> *sample, RNG &rng, int& pixIdx);
 
     bool ReportResults(Sample *samples, const RayDifferential *rays,
         const Spectrum *Ls, const Intersection *isects, int count);
@@ -112,7 +112,7 @@ private:
 			Shuffle(samples + 2 * i * nSamples, nSamples, 2, rng);
 		Shuffle(samples, nPixel, 2 * nSamples, rng);
 	}
-    void LDPixelSample(int xPos, int yPos, float shutterOpen, float shutterClose, int nPixelSamples, float *samples, float *buf, RNG &rng, PixInfo& pixInfo) {
+    void LDPixelSample(int xPos, int yPos, float shutterOpen, float shutterClose, int nPixelSamples, std::vector<float> *samples, float *buf, RNG &rng, PixInfo& pixInfo) {
 		// Prepare temporary array pointers for low-discrepancy camera samples
 		float *imageSamples = buf; buf += 2 * nPixelSamples;
 //		float *lensSamples = buf;  buf += 2 * nPixelSamples;
@@ -160,8 +160,8 @@ private:
 
 		// Initialize _samples_ with computed sample values
 		for (int i = 0; i < nPixelSamples; ++i) {
-            samples[i*SAMPLE_SIZE + IMAGE_X] = xPos + imageSamples[2*i];
-            samples[i*SAMPLE_SIZE + IMAGE_Y] = yPos + imageSamples[2*i+1];
+            samples->push_back(xPos + imageSamples[2*i]);
+            samples->push_back(yPos + imageSamples[2*i+1]);
 //			samples[i].imageX = xPos + imageSamples[2*i];
 //			samples[i].imageY = yPos + imageSamples[2*i+1];
 //			samples[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose);

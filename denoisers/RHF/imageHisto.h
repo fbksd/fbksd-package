@@ -21,7 +21,7 @@ public:
     ~ImageFilmHisto() {
         delete[] filterTable;
     }
-    void AddSample(float* sample);
+    void AddSample(const float* sample);
     void GetSampleExtent(int *xstart, int *xend, int *ystart, int *yend) const;
     void GetPixelExtent(int *xstart, int *xend, int *ystart, int *yend) const;
     // returns the image and the histogram

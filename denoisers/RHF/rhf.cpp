@@ -39,10 +39,10 @@ void reconstructInput(float* samples, size_t numSamples, int sampleSize, ImageFi
         film->AddSample(&samples[i*sampleSize]);
 }
 
-int main(int argc, char **argv)
+int main(int argc, char* argv[])
 {
 #ifdef BENCHMARK_MODE
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo sceneInfo = client.getSceneInfo();
     auto nx = sceneInfo.get<int64_t>("width");
     auto ny = sceneInfo.get<int64_t>("height");
@@ -86,9 +86,11 @@ int main(int argc, char **argv)
     std::unique_ptr<float[]> denoised(new float[nx * ny * nc]);
 
 #ifdef BENCHMARK_MODE
-    client.evaluateSamples(SPP(spp));
-    float* samples = client.getSamplesBuffer();
-    reconstructInput(samples, nx*ny*spp, layout.getSampleSize(), &imgHist);
+    client.evaluateSamples(SPP(spp), [&](const BufferTile& tile)
+    {
+        for(const auto& sample: tile)
+            imgHist.AddSample(sample);
+    });
     auto input = imgHist.WriteImage();
 
     auto& img = input.first;

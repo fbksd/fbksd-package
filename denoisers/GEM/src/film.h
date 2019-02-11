@@ -38,7 +38,7 @@ public:
     Film(int xres, int yres)
         : xResolution(xres), yResolution(yres) { }
     virtual ~Film();
-    virtual void AddSample(float* sample) = 0;
+    virtual void AddSample(const float* sample) = 0;
     virtual void GetSampleExtent(int *xstart, int *xend,
                                  int *ystart, int *yend) const = 0;
     virtual void GetPixelExtent(int *xstart, int *xend,

@@ -45,7 +45,7 @@ ImageFilmHisto::ImageFilmHisto(int xres, int yres, Filter *filt, int nB, float g
 
 
 /*END AddSampleHisto mdelbra 04.03.2013*/
-void ImageFilmHisto::AddSample(float* sample)
+void ImageFilmHisto::AddSample(const float* sample)
 {
     // Compute sample's raster extent
     float dimageX = sample[0] - 0.5f;

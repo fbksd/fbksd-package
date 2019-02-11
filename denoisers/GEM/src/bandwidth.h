@@ -42,7 +42,7 @@ public:
     virtual ~BandwidthSampler();
 
     Sampler *GetSubSampler(int num, int count);
-    int GetMoreSamples(float *sample, RNG& rng);
+    int GetMoreSamples(std::vector<float> *sample, RNG& rng);
 
     int MaximumSampleCount() { return max(1, samplesPerPixel); }
 

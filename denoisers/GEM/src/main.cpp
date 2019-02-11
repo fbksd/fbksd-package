@@ -8,9 +8,9 @@ using namespace fbksd;
 #include <iostream>
 
 
-int main(int argc, char **argv)
+int main(int argc, char* argv[])
 {
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo sceneInfo = client.getSceneInfo();
     const auto width = sceneInfo.get<int64_t>("width");
     const auto height = sceneInfo.get<int64_t>("height");
@@ -30,17 +30,17 @@ int main(int argc, char **argv)
 
     auto initSpp = std::min(INT64_C(4), spp);
     std::cout << "Initial sampling:  " << initSpp << " spp ..." << std::endl;
-    client.evaluateSamples(SPP(initSpp));
-    std::cout << "finished initial sampling" << std::endl;
 
     GaussianFilter filter(2.f, 2.f, 2.f);
     SmoothFilm film(width, height, &filter, gamma);
-    float* samples = client.getSamplesBuffer();
     size_t numPixels = width*height;
     std::cout << "num pixels: " << numPixels << std::endl;
-    size_t numInitSamples = initSpp * numPixels;
-    for (size_t i = 0; i < numInitSamples; ++i)
-        film.AddSample(&samples[i*sampleSize]);
+    client.evaluateSamples(SPP(initSpp), [&](const BufferTile& tile)
+    {
+        for(const auto& sample: tile)
+            film.AddSample(sample);
+    });
+    std::cout << "finished initial sampling" << std::endl;
 
     BandwidthSampler sampler(0, width, 0, height, spp, 0.f, 1.f, threshold, nIterations, &film);
     if (sampler.PixelsToSampleTotal() > 0)
@@ -59,19 +59,33 @@ int main(int argc, char **argv)
             std::cout << "Adaptive iteration " << it++ << " of " << nIterations << std::endl;
             sampler.GetWorstPixels(nPixelsPerIteration);
 
+            size_t numSamples = sampler.PixelsToSample() * sampler.samplesPerPixel;
+            std::cout << "num samples: " << numSamples << std::endl;
+            totalSampleCount += numSamples;
+
+            std::vector<float> inSamples;
+            inSamples.reserve(numSamples*2);
             int nSamples = 0;
             size_t nSum = 0;
-            while(nSamples = sampler.GetMoreSamples(&samples[nSum*sampleSize], rng))
+            while(nSamples = sampler.GetMoreSamples(&inSamples, rng))
                 nSum += nSamples;
-
             totalSampleCount += nSum;
-            std::cout << "num samples: " << nSum << std::endl;
-            client.evaluateSamples(nSum);
-            for(size_t i = 0; i < nSum; ++i)
-            {
-                //if(it == 3 && i == 26882)
-                film.AddSample(&samples[i*sampleSize]);
-            }
+
+            float* currentInSample = inSamples.data();
+            client.evaluateInputSamples(numSamples,
+                [&](int64_t count, float* samples) {
+                    for(int64_t i = 0; i < count; ++i)
+                    {
+                        samples[i*sampleSize] = currentInSample[0];
+                        samples[i*sampleSize + 1] = currentInSample[1];
+                        currentInSample += 2;
+                    }
+                },
+                [&](int64_t count, float* samples) {
+                    for(int64_t i = 0; i < count; ++i)
+                        film.AddSample(&samples[i*sampleSize]);
+                }
+            );
         }
         std::cout << "Finished adaptive sampling: " << totalSampleCount << " samples (" << totalSampleCount/(float)numPixels << " spp)" << std::endl;
     }

@@ -52,7 +52,7 @@ public:
         if(sampleBuf) delete[] sampleBuf;
     }
     int MaximumSampleCount() { return maxSamples; }
-    int GetMoreSamples(float* sample, RNG &rng);
+    int GetMoreSamples(std::vector<float>* sample, RNG &rng);
     int RoundSize(int sz) const { 
         return sz; 
     }

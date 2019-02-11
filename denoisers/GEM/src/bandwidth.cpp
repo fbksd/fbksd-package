@@ -167,7 +167,7 @@ Sampler *BandwidthSampler::GetSubSampler(int num, int count) {
 }
 
 
-int BandwidthSampler::GetMoreSamples(float *samples, RNG& rng) {
+int BandwidthSampler::GetMoreSamples(std::vector<float> *samples, RNG& rng) {
     // Check if we're done
     if (_pixels.empty()) return 0;
 
@@ -185,20 +185,22 @@ int BandwidthSampler::GetMoreSamples(float *samples, RNG& rng) {
         // Importance sampling
         float xTmp = rng.RandomFloat(), yTmp = rng.RandomFloat();
         _filters[scale]->WarpSampleToPixelOffset(xTmp, yTmp);
-        samples[i*5] = xPos + xTmp;
-        samples[i*5 + 1] = yPos + yTmp;
+        float sx = xPos + xTmp;
+        float sy = yPos + yTmp;
         // Replace image samples with low-discrepancy samples inside film buffer
-        int xPosSmp = Floor2Int(samples[i*5]);
-        int yPosSmp = Floor2Int(samples[i*5 + 1]);
+        int xPosSmp = Floor2Int(sx);
+        int yPosSmp = Floor2Int(sy);
         if (xPosSmp >= 0 && yPosSmp >= 0 && xPosSmp < _xPixelCount && yPosSmp < _yPixelCount) {
             int pix = xPosSmp + yPosSmp * _xPixelCount; // pixel offset
             // Lock this pixel
             MutexLock lock(*(_pixelMutexes[pix]));
             // Draw the samples
             LDShuffleScrambled2D(1, 1, _scrambling[pix]._nGenerated, buffer, rng, _scrambling[pix]._image);
-            samples[i*5] = xPosSmp + buffer[0];
-            samples[i*5 + 1] = yPosSmp + buffer[1];
+            sx = xPosSmp + buffer[0];
+            sy = yPosSmp + buffer[1];
             _scrambling[pix]._nGenerated++;
+            samples->push_back(sx);
+            samples->push_back(sy);
         }
         else
         {

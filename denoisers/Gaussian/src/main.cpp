@@ -3,10 +3,6 @@ using namespace fbksd;
 #include <memory>
 #include <cmath>
 
-
-//TODO: improve performance (tabulate gaussian values and parallelize).
-
-
 // Filter parameters
 static float xWidth = 2.f;
 static float yWidth = 2.f;
@@ -21,10 +17,9 @@ inline float gaussian(float x, float y)
 }
 
 
-int main()
+int main(int argc, char* argv[])
 {
-
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo scene = client.getSceneInfo();
     auto width = scene.get<int64_t>("width");
     auto height = scene.get<int64_t>("height");
@@ -34,48 +29,44 @@ int main()
     SampleLayout layout;
     layout("IMAGE_X")("IMAGE_Y")("COLOR_R")("COLOR_G")("COLOR_B");
     client.setSampleLayout(layout);
-
-    float* samples = client.getSamplesBuffer();
-    client.evaluateSamples(SPP(spp));
-
-    size_t numPixels = width * height;
-    std::vector<float> weightSum(numPixels, 0.f);
     float* result = client.getResultBuffer();
+    int64_t numPixels = width * height;
+    std::vector<float> weightSum(numPixels, 0.f);
 
-    float* sample = samples;
-    for(size_t i = 0; i < numSamples; ++i)
+    client.evaluateSamples(SPP(spp), [&](const BufferTile& tile)
     {
-        float fminX = sample[0] - xWidth;
-        float fminY = sample[1] - yWidth;
-        float fmaxX = sample[0] + xWidth;
-        float fmaxY = sample[1] + yWidth;
-
-        int64_t minX = floor(fminX + 0.5f);
-        int64_t minY = floor(fminY + 0.5f);
-        int64_t maxX = floor(fmaxX - 0.5f);
-        int64_t maxY = floor(fmaxY - 0.5f);
-
-        minX = std::max(INT64_C(0), minX);
-        minY = std::max(INT64_C(0), minY);
-        maxX = std::min(width-1, maxX);
-        maxY = std::min(height-1, maxY);
-
-        for(int64_t y = minY; y <= maxY; ++y)
-        for(int64_t x = minX; x <= maxX; ++x)
+        for(const auto sample: tile)
         {
-            float *pixel = &result[y*width*3 + x*3];
-            float w = gaussian((x + 0.5f) - sample[0], (y + 0.5f) - sample[1]);
-            if(w > 0.f)
+            float fminX = sample[0] - xWidth;
+            float fminY = sample[1] - yWidth;
+            float fmaxX = sample[0] + xWidth;
+            float fmaxY = sample[1] + yWidth;
+
+            int64_t minX = floor(fminX + 0.5f);
+            int64_t minY = floor(fminY + 0.5f);
+            int64_t maxX = floor(fmaxX - 0.5f);
+            int64_t maxY = floor(fmaxY - 0.5f);
+
+            minX = std::max(INT64_C(0), minX);
+            minY = std::max(INT64_C(0), minY);
+            maxX = std::min(width-1, maxX);
+            maxY = std::min(height-1, maxY);
+
+            for(int64_t y = minY; y <= maxY; ++y)
+            for(int64_t x = minX; x <= maxX; ++x)
             {
-                pixel[0] += sample[2] * w;
-                pixel[1] += sample[3] * w;
-                pixel[2] += sample[4] * w;
-                weightSum[y*width + x]  += w;
+                float *pixel = &result[y*width*3 + x*3];
+                float w = gaussian((x + 0.5f) - sample[0], (y + 0.5f) - sample[1]);
+                if(w > 0.f)
+                {
+                    pixel[0] += sample[2] * w;
+                    pixel[1] += sample[3] * w;
+                    pixel[2] += sample[4] * w;
+                    weightSum[y*width + x]  += w;
+                }
             }
         }
-
-        sample += layout.getSampleSize();
-    }
+    });
 
     for(int64_t y = 0; y < height; ++y)
     for(int64_t x = 0; x < width; ++x)

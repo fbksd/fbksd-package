@@ -9,8 +9,6 @@
 #define	DUALSAMPLER_H
 
 #include "sampler.h"
-#include "stratified.h"
-#include "random.h"
 #include "dualfilm.h"
 #include "montecarlo.h"
 #include "nlmkernel.h"
@@ -43,7 +41,7 @@ public:
     virtual ~DualSampler();
 
     Sampler *GetSubSampler(int num, int count);
-    int GetMoreSamples(float *sample, RNG &rng) {
+    int GetMoreSamples(std::vector<float> *sample, RNG &rng) {
 #ifdef LD_SAMPLING
         return GetMoreSamplesMapLD(sample, rng);
 #else
@@ -125,12 +123,12 @@ private:
         Shuffle(samples, nPixel, 2 * nSamples, rng);
     }
 
-    int GetMoreSamplesMap(float *sample, RNG &rng);
-    int GetMoreSamplesMapLD(float *sample, RNG &rng);
+    int GetMoreSamplesMap(std::vector<float> *sample, RNG &rng);
+    int GetMoreSamplesMapLD(std::vector<float> *sample, RNG &rng);
     
     float *_samplesBuf;
     void MyLDPixelSample(int xPos, int yPos, float shutterOpen,
-        float shutterClose, int nPixelSamples, float *samples, RNG &rng,
+        float shutterClose, int nPixelSamples, std::vector<float> *samples, RNG &rng,
         NlmeansScramblingInfo *scramblingArray);
     void MyLDPixelSampleInterleaved(int xPos, int yPos, float shutterOpen,
         float shutterClose, int nPixelSamples, float *samples, RNG &rng);

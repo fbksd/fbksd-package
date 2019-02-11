@@ -4,9 +4,9 @@ using namespace fbksd;
 #include "SampleWriter/SampleWriter.h"
 
 
-int main(int argc, char **argv)
+int main(int argc, char* argv[])
 {
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo sceneInfo = client.getSceneInfo();
     auto width = sceneInfo.get<int64_t>("width");
     auto height = sceneInfo.get<int64_t>("height");
@@ -20,20 +20,16 @@ int main(int argc, char **argv)
           ("TEXTURE_COLOR_R")("TEXTURE_COLOR_G")("TEXTURE_COLOR_B")
           ("TEXTURE_COLOR_R")[1]("TEXTURE_COLOR_G")[1]("TEXTURE_COLOR_B")[1]
           ("DIRECT_LIGHT_R")("DIRECT_LIGHT_G")("DIRECT_LIGHT_B");
-    int sampleSize = layout.getSampleSize();
     client.setSampleLayout(layout);
-    client.evaluateSamples(SPP(spp));
-
     SampleWriter::Initialize(width, height, spp);
-    size_t numPixels = width * height;
-    int pixelOffset = sampleSize*spp;
-    float* samples = client.getSamplesBuffer();
-#pragma omp parallel for
-    for(size_t i = 0; i < numPixels; ++i)
+
+    client.evaluateSamples(SPP(spp), [&](const BufferTile& tile)
     {
+        for(auto y = tile.beginY(); y < tile.endY(); ++y)
+        for(auto x = tile.beginX(); x < tile.endX(); ++x)
         for(size_t s = 0; s < spp; ++s)
         {
-            float* sample = &samples[i*pixelOffset + s*sampleSize];
+            float* sample = tile(x, y, s);
             float x = sample[X_COORD];
             float y = sample[Y_COORD];
 
@@ -62,7 +58,7 @@ int main(int argc, char **argv)
             float visibility = sample[VISIBILITY_1] + sample[VISIBILITY_1 + 1] + sample[VISIBILITY_1 + 2] > 0;
             SampleWriter::SetFeature(x, y, s, visibility, VISIBILITY_1_OFFSET);
         }
-    }
+    });
 
     float* result = client.getResultBuffer();
     SampleWriter::ProcessData(result);

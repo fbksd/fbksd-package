@@ -70,9 +70,9 @@ static void shuffleVector(std::vector<size_t>& vec)
 }
 
 
-int main()
+int main(int argc, char* argv[])
 {
-    BenchmarkClient client;
+    BenchmarkClient client(argc, argv);
     SceneInfo scene = client.getSceneInfo();
     const auto w = scene.get<int64_t>("width");
     const auto h = scene.get<int64_t>("height");
@@ -93,7 +93,6 @@ int main()
             ("DEPTH")
             ("DIRECT_LIGHT_R");
     client.setSampleLayout(layout);
-    client.evaluateSamples(SPP(spp));
 
     const size_t numPixels = w*h;
     size_t sampleSize = layout.getSampleSize();
@@ -104,15 +103,18 @@ int main()
     // a predefined order.
     std::vector<size_t> indexSequence(spp);
     std::iota(indexSequence.begin(), indexSequence.end(), 0);
-    float* samples = client.getSamplesBuffer();
-    for(size_t p = 0; p < numPixels; ++p)
+    client.evaluateSamples(SPP(spp), [&](const BufferTile& tile)
     {
-        shuffleVector(indexSequence);
-        for(size_t s = 0; s < spp/2; ++s)
-            film.AddSample(&samples[p*spp*sampleSize + indexSequence[s]*sampleSize], 0);
-        for(size_t s = spp/2; s < spp; ++s)
-            film.AddSample(&samples[p*spp*sampleSize + indexSequence[s]*sampleSize], 1);
-    }
+        for(size_t y = tile.beginY(); y < tile.endY(); ++y)
+        for(size_t x = tile.beginX(); x < tile.endX(); ++x)
+        {
+            shuffleVector(indexSequence);
+            for(size_t s = 0; s < spp/2; ++s)
+                film.AddSample(tile(x, y, indexSequence[s]), 0);
+            for(size_t s = spp/2; s < spp; ++s)
+                film.AddSample(tile(x, y, indexSequence[s]), 1);
+        }
+    });
 
     float* result = client.getResultBuffer();
     NFOR(&film, result);

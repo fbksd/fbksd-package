@@ -46,53 +46,57 @@ int main(int argc, char* argv[])
           ("COLOR_R")("COLOR_G")("COLOR_B");
     client.setSampleLayout(layout);
     int sampleSize = layout.getSampleSize();
-    float* samples = client.getSamplesBuffer();
 
     SobolSampler sampler(spp);
     sampler.setFilmResolution(Vector2i(w, h), true);
-    for(size_t y = 0; y < h; ++y)
-    for(size_t x = 0; x < w; ++x)
-    {
-        sampler.generate(Point2i(x, y));
-        float* pixel = &samples[y*w*spp*sampleSize + x*spp*sampleSize];
-        for(int s = 0; s < spp; ++s)
-        {
-            Point2 p = sampler.next2D();
-            Point2 l = sampler.next2D();
-            float t = sampler.next1D();
-            Point2 light = sampler.next2D();
-            pixel[s*sampleSize + IMAGE_X] = p.x + x;
-            pixel[s*sampleSize + IMAGE_Y] = p.y + y;
-            pixel[s*sampleSize + LENS_U] = l.x;
-            pixel[s*sampleSize + LENS_V] = l.y;
-            pixel[s*sampleSize + TIME] = t;
-            pixel[s*sampleSize + LIGHT_X] = light.x;
-            pixel[s*sampleSize + LIGHT_Y] = light.y;
-            sampler.advance();
-        }
-    }
-
-    client.evaluateSamples(SPP(spp));
-    
     float* result = client.getResultBuffer();
     const float sppInv = 1.f / (float)spp;
-    for(size_t y = 0; y < h; ++y)
-    for(size_t x = 0; x < w; ++x)
-    {
-        float* pixel = &result[y*w*3 + x*3];
-        float* pixelSamples = &samples[y*w*spp*sampleSize + x*sampleSize*spp];
-        for(int s = 0; s < spp; ++s)
-        {
-            float* sample = &pixelSamples[s*sampleSize];
-            pixel[0] += sample[COLOR_R];
-            pixel[1] += sample[COLOR_G];
-            pixel[2] += sample[COLOR_B];
-        }
 
-        pixel[0] *= sppInv;
-        pixel[1] *= sppInv;
-        pixel[2] *= sppInv;
-    }
+    client.evaluateInputSamples(SPP(spp),
+        [&](const BufferTile& tile)
+        {
+            for(int64_t y = tile.beginY(); y < tile.endY(); ++y)
+            for(int64_t x = tile.beginX(); x < tile.endX(); ++x)
+            {
+                sampler.generate(Point2i(x, y));
+                for(int s = 0; s < spp; ++s)
+                {
+                    float* sample = tile(x, y, s);
+                    Point2 p = sampler.next2D();
+                    Point2 l = sampler.next2D();
+                    float t = sampler.next1D();
+                    Point2 light = sampler.next2D();
+                    sample[IMAGE_X] = p.x + x;
+                    sample[IMAGE_Y] = p.y + y;
+                    sample[LENS_U] = l.x;
+                    sample[LENS_V] = l.y;
+                    sample[TIME] = t;
+                    sample[LIGHT_X] = light.x;
+                    sample[LIGHT_Y] = light.y;
+                    sampler.advance();
+                }
+            }
+        },
+        [&](const BufferTile& tile)
+        {
+            for(int64_t y = tile.beginY(); y < tile.endY(); ++y)
+            for(int64_t x = tile.beginX(); x < tile.endX(); ++x)
+            {
+                float* pixel = &result[y * w * 3 + x * 3];
+                for(int s = 0; s < spp; ++s)
+                {
+                    float *sample = tile(x, y, s);
+                    pixel[0] += sample[COLOR_R];
+                    pixel[1] += sample[COLOR_G];
+                    pixel[2] += sample[COLOR_B];
+                }
+
+                pixel[0] *= sppInv;
+                pixel[1] *= sppInv;
+                pixel[2] *= sppInv;
+            }
+        }
+    );
 
     client.sendResult();
     return 0;
