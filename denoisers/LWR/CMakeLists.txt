@@ -3,11 +3,6 @@ cmake_minimum_required(VERSION 2.8.3 FATAL_ERROR)
 project(LWR)
 
 set(CMAKE_CXX_STANDARD 14)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "7.0.0")
-        message(FATAL_ERROR "gcc version greather than 6 not supported by cuda.")
-    endif()
-endif()
 
 find_package(fbksd REQUIRED)
 

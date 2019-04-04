@@ -63,16 +63,18 @@ The list below is a good summary:
 
 - Boost
 - OpenEXR
-- OpenCV
+- OpenCV 3
 - Eigen
 - XERCES
 - FFTW
-- GLEW
+- GLEW MX
 - Python3
 - CUDA (Optional)
-  - if CUDA is not installed, denoisers that depend on it will not be compiled.
-  - If CUDA is present, gcc version 7 and above are not supported (at this time).
-    If your default gcc version id 7 or above, set a different version using the `CC` and `CXX` environment variables before running cmake, as in the example below.
+
+> **NOTE:** If CUDA is not present, denoisers that depend on it will not be compiled.
+In case it is present, note that CUDA requires specific gcc versions ([see "Table 1" in the CUDA documentation for your version](https://docs.nvidia.com/cuda/archive/10.1/cuda-installation-guide-linux/index.html)).
+>
+> For example, CUDA 9.1 requires gcc version 6 or below. If your default gcc version is above that, you have to set a different version using the `CC` and `CXX` environment variables before running cmake, as in the example below.
 
 After installing the dependencies, build with `cmake` setting the `CMAKE_INSTALL_PREFIX` variable to the your FBKSD workspace location:
 
